@@ -31,7 +31,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # 1. 添加原作者 upstream 仓库
-          git remote add upstream https://github.com/Evolution-X/packages_apps_Evolver.git.git
+          git remote add upstream https://github.com/Evolution-X/packages_apps_Evolver.git
 
           # 2. 获取原作者最新的分支信息
           echo "正在拉取上游代码..."
