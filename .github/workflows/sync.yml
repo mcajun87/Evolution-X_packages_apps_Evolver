@@ -1,0 +1,58 @@
+name: Evolution-X_packages_apps_Evolver
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天北京时间早上 8:00 自动运行一次
+  workflow_dispatch: # 支持手动点击 Run workflow 随时运行
+
+jobs:
+  sync_latest_from_upstream:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == github.actor }}
+    timeout-minutes: 15 # 防止意外情况卡死，超过 15 分钟自动中止
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: cnb # 【优化点1】明确指定检出 cnb 分支，防止默认分支不一致导致报错
+
+      - name: Sync upstream
+        run: |
+          set -euo pipefail
+          
+          # 配置 Git 机器人身份
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 1. 添加原作者 upstream 仓库
+          git remote add upstream https://github.com/Evolution-X/packages_apps_Evolver.git.git
+
+          # 2. 获取原作者最新的分支信息
+          echo "正在拉取上游代码..."
+          git fetch upstream cnb
+
+          # 3. 尝试合并
+          echo "正在尝试合并上游代码..."
+          if ! git merge upstream/cnb --no-edit; then
+            echo "======================================================"
+            echo "❌ 发现代码冲突，无法自动合并！"
+            echo "🛑 已自动中止合并，保持当前仓库状态不变。"
+            echo "👉 请前往 GitHub 网页端或本地解决冲突后再重新运行。"
+            echo "======================================================"
+            git merge --abort || true # 确保清理合并状态
+            exit 1
+          fi
+
+          # 4. 检查是否有更新，如果有则推送
+          if git diff --quiet origin/cnb; then
+            echo "✅ 当前已是最新代码，无需推送。"
+          else
+            echo "正在推送到你的 Fork 仓库..."
+            git push origin cnb
+          fi
